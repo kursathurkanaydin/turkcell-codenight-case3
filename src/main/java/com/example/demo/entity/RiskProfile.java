@@ -22,7 +22,6 @@ public class RiskProfile {
 
     public RiskProfile() {
     }
-
     public RiskProfile(String userId, Double riskScore,
                        RiskLevel riskLevel, List<String> signals) {
         this.userId = userId;
