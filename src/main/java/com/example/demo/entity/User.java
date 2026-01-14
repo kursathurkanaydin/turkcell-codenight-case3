@@ -6,7 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "entity")
+@Table(name = "local_users")
 public class User {
     //user_id, name, city, segment
     @Id

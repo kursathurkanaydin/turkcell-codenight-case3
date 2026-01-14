@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "events")
+@Table(name = "eventLog")
 public class EventLog {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -15,7 +15,7 @@ public class EventLog {
     private String userId;
     private String service; // Paycell, BiP
     private String eventType; // PAYMENT, LOGIN
-    private Double value;
+    private Double amount;
     private String unit; // TRY
 
     @Column(columnDefinition = "TEXT")
@@ -28,13 +28,13 @@ public class EventLog {
     }
 
     public EventLog(String eventId, String userId, String service,
-                    String eventType, Double value, String unit,
+                    String eventType, Double amount, String unit,
                     String meta, LocalDateTime timestamp) {
         this.eventId = eventId;
         this.userId = userId;
         this.service = service;
         this.eventType = eventType;
-        this.value = value;
+        this.amount = amount;
         this.unit = unit;
         this.meta = meta;
         this.timestamp = timestamp;
@@ -80,12 +80,12 @@ public class EventLog {
         this.eventType = eventType;
     }
 
-    public Double getValue() {
-        return value;
+    public Double getAmount() {
+        return amount;
     }
 
-    public void setValue(Double value) {
-        this.value = value;
+    public void setAmount(Double amount) {
+        this.amount = amount;
     }
 
     public String getUnit() {

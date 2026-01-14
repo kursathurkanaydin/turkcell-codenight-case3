@@ -15,25 +15,18 @@ public class CaseAction {
     @JoinColumn(name = "case_id", nullable = false)
     private FraudCase fraudCase; // [cite: 120]
 
-    // Yapılan işlemin türü (Örn: "STATUS_CHANGE", "COMMENT_ADDED", "CASE_OPENED")
     private String actionType; // [cite: 120]
 
-    // İşlemi yapan kişi veya sistem (Örn: "System", "Ahmet.Yilmaz")
     private String actor; // [cite: 120]
 
-    // İşlemle ilgili açıklama veya not
     @Column(columnDefinition = "TEXT")
     private String note; // [cite: 120]
 
     @Column(name = "event_timestamp")
     private LocalDateTime timestamp; // [cite: 120]
 
-    // --- Constructor, Getters & Setters ---
-
-    // Boş Constructor (JPA için gereklidir)
     public CaseAction() {}
 
-    // Kolay oluşturma için Constructor
     public CaseAction(FraudCase fraudCase, String actionType, String actor, String note) {
         this.fraudCase = fraudCase;
         this.actionType = actionType;

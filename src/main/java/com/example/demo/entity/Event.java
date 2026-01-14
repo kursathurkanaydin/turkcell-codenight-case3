@@ -24,8 +24,8 @@ public class Event {
     @Column(name = "event_type")
     private String eventType;
 
-    @Column(name = "event_deger")
-    private Double deger;
+    @Column(name = "amount")
+    private Double amount;
 
     @Column(name = "unit")
     private String unit;
@@ -40,12 +40,12 @@ public class Event {
     }
 
     public Event(String eventId, String userId, String service, String eventType,
-                 Double deger, String unit, String meta, LocalDateTime timestamp) {
+                 Double amount, String unit, String meta, LocalDateTime timestamp) {
         this.eventId = eventId;
         this.userId = userId;
         this.service = service;
         this.eventType = eventType;
-        this.deger = deger;
+        this.amount = amount;
         this.unit = unit;
         this.meta = meta;
         this.timestamp = timestamp;
@@ -83,12 +83,12 @@ public class Event {
         this.eventType = eventType;
     }
 
-    public Double getDeger() {
-        return deger;
+    public Double getAmount() {
+        return amount;
     }
 
-    public void setDeger(Double deger) {
-        this.deger = deger;
+    public void setAmount(Double amount) {
+        this.amount = amount;
     }
 
     public String getUnit() {
