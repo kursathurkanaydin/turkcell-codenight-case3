@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.dto.request.CreateFraudCaseRequest;
 import com.example.demo.entity.CaseAction;
 import com.example.demo.entity.CaseStatus;
 import com.example.demo.entity.FraudCase;
@@ -12,7 +13,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
-public class FraudCaseService {
+public class FraudCaseService implements IFraudCaseService {
 
     private final FraudCaseRepository caseRepository;
     private final ActionServiceRepository actionRepository;
@@ -22,19 +23,18 @@ public class FraudCaseService {
     }
 
     @Transactional // Hem Case'i hem Action'ı aynı anda kaydetmek için
-    public FraudCase createSystemCase(String userId, Integer priority, String ruleDescription) {
+    public FraudCase createSystemCase(CreateFraudCaseRequest request) {
 
         // 1. Case Oluştur [cite: 63-68]
         FraudCase fraudCase = new FraudCase();
-        fraudCase.setUserId(userId);
+        fraudCase.setUserId(request.userId());
         fraudCase.setStatus(CaseStatus.OPEN);
-        fraudCase.setPriority(priority);
+        fraudCase.setPriority(request.priority());
         fraudCase.setOpenedAt(LocalDateTime.now());
 
         FraudCase savedCase = caseRepository.save(fraudCase);
 
-        logAction(savedCase, "SYSTEM", "CASE_CREATED", "Otomatik oluşturuldu: " + ruleDescription);
-
+        logAction(savedCase, "SYSTEM", "CASE_CREATED", "Otomatik oluşturuldu: " + request.ruleDescription());
         return savedCase;
     }
 

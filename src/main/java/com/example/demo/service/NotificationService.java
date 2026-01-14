@@ -7,7 +7,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 
 @Service
-public class NotificationService {
+public class NotificationService implements INotificationService {
 
     private final BipNotificationRepository notificationRepository; // DB'ye yazmak için
 
