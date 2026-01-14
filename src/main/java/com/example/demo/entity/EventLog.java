@@ -1,54 +1,51 @@
 package com.example.demo.entity;
 
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "event")
-public class Event {
-    //event_id, user_id, service, event_type, value, unit, meta, timestamp
+@Table(name = "events")
+public class EventLog {
     @Id
-    private String eventId;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
 
-    @Column(name = "user_id")
+    private String eventId; // EV-5002
     private String userId;
+    private String service; // Paycell, BiP
+    private String eventType; // PAYMENT, LOGIN
+    private Double value;
+    private String unit; // TRY
 
-    @Column(name = "service")
-    private String service;
-
-    @Column(name = "event_type")
-    private String eventType;
-
-    @Column(name = "event_deger")
-    private Double deger;
-
-    @Column(name = "unit")
-    private String unit;
-
-    @Column(name = "meta")
-    private String meta;
+    @Column(columnDefinition = "TEXT")
+    private String meta; // JSON veya Key-Value string: "merchant=Crypto"
 
     @Column(name = "event_timestamp")
     private LocalDateTime timestamp;
 
-    public Event() {
+    public EventLog() {
     }
 
-    public Event(String eventId, String userId, String service, String eventType,
-                 Double deger, String unit, String meta, LocalDateTime timestamp) {
+    public EventLog(String eventId, String userId, String service,
+                    String eventType, Double value, String unit,
+                    String meta, LocalDateTime timestamp) {
         this.eventId = eventId;
         this.userId = userId;
         this.service = service;
         this.eventType = eventType;
-        this.deger = deger;
+        this.value = value;
         this.unit = unit;
         this.meta = meta;
         this.timestamp = timestamp;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
     }
 
     public String getEventId() {
@@ -83,12 +80,12 @@ public class Event {
         this.eventType = eventType;
     }
 
-    public Double getDeger() {
-        return deger;
+    public Double getValue() {
+        return value;
     }
 
-    public void setDeger(Double deger) {
-        this.deger = deger;
+    public void setValue(Double value) {
+        this.value = value;
     }
 
     public String getUnit() {
