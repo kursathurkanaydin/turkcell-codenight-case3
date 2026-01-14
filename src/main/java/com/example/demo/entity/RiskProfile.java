@@ -17,6 +17,9 @@ public class RiskProfile {
     @Enumerated(EnumType.STRING)
     private RiskLevel riskLevel;
 
+    @OneToOne(mappedBy = "riskProfile")
+    private User user;
+
     @ElementCollection
     private List<String> signals;
 

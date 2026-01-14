@@ -1,9 +1,6 @@
 package com.example.demo.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "local_users")
@@ -19,8 +16,15 @@ public class User {
     @Column(name = "city")
     private String city;
 
+    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @JoinColumn(name = "risk_profile_id")
+    private RiskProfile riskProfile;
+
     @Column(name = "segment")
     private String segment;
+
+    @Column(name = "is_blocked")
+    private boolean isBlocked = false;
 
     public User() {
     }
@@ -62,5 +66,13 @@ public class User {
 
     public void setSegment(String segment) {
         this.segment = segment;
+    }
+
+    public boolean isBlocked() {
+        return isBlocked;
+    }
+
+    public void setBlocked(boolean blocked) {
+        isBlocked = blocked;
     }
 }
