@@ -31,6 +31,8 @@ public class FraudCaseService implements IFraudCaseService {
         fraudCase.setStatus(CaseStatus.OPEN);
         fraudCase.setPriority(request.priority());
         fraudCase.setOpenedAt(LocalDateTime.now());
+        fraudCase.setOpenedBy("SYSTEM"); // Sistem tarafından açıldığını belirt
+        fraudCase.setCaseType("AUTO_GENERATED"); // Otomatik oluşturulan case tipi
 
         FraudCase savedCase = caseRepository.save(fraudCase);
 
@@ -43,12 +45,18 @@ public class FraudCaseService implements IFraudCaseService {
     public void updateCaseStatus(String caseId, CaseStatus newStatus, String actorName, String note) {
         // Case'i bul
         FraudCase fraudCase = caseRepository.findById(caseId)
-                .orElseThrow(() -> new RuntimeException("Case bulunamadı"));
+                .orElseThrow(() -> new IllegalArgumentException("Case bulunamadı: " + caseId));
 
         String oldStatus = fraudCase.getStatus().name();
 
         // Statüyü güncelle
         fraudCase.setStatus(newStatus); // Örn: OPEN -> CLOSED
+
+        // CLOSED durumunda kapanış zamanını ayarla
+        if (newStatus == CaseStatus.CLOSED) {
+            fraudCase.setClosedAt(LocalDateTime.now());
+        }
+
         caseRepository.save(fraudCase);
 
         // Log at
@@ -70,7 +78,8 @@ public class FraudCaseService implements IFraudCaseService {
 
     // Detay görüntüleme (Bonus: Geçmişi ile birlikte)
     public FraudCase getCaseDetails(String caseId) {
-        return caseRepository.findById(caseId).orElseThrow();
+        return caseRepository.findById(caseId)
+                .orElseThrow(() -> new IllegalArgumentException("Case bulunamadı: " + caseId));
     }
 
     // --- YARDIMCI METOD (PRIVATE) ---

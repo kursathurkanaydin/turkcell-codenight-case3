@@ -10,6 +10,7 @@ import java.util.List;
 public class Decision {
     //decision_id, user_id, triggered_rules, selected_action, suppressed_actions, timestamp
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String decisionId;
 
     @Column(name = "user_id")

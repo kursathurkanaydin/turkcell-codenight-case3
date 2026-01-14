@@ -2,6 +2,7 @@ package com.example.demo.service;
 
 import com.example.demo.entity.BipNotification;
 import com.example.demo.repository.BipNotificationRepository;
+import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -15,6 +16,8 @@ public class NotificationService implements INotificationService {
         this.notificationRepository = notificationRepository;
     }
 
+    @Override
+    @Transactional
     public void sendBipNotification(String userId, String message) {
         // 1. Simülasyon: Konsola yaz (Gerçekte HTTP isteği atılırdı)
         System.out.println("BiP Mesajı Gönderiliyor -> User: " + userId + " | Msg: " + message);

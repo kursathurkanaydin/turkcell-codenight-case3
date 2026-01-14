@@ -1,9 +1,7 @@
 package com.example.demo.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+
 
 import java.time.LocalDateTime;
 
@@ -12,6 +10,7 @@ import java.time.LocalDateTime;
 public class BipNotification {
     //notification_id, user_id, channel, message, sent_at
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String notificationId;
 
     @Column(name = "user_id")

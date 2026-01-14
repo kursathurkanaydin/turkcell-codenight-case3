@@ -8,9 +8,10 @@ import java.util.List;
 @Entity
 @Table(name = "fraud_case")
 public class FraudCase {
-    //case_id, user_id, opened_by, case_type, status, opened_at, priority
+    //case_id, user_id, opened_by, case_type, status, opened_at, closed_at, priority
 
     @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String caseId;
 
     @Column(name = "user_id")
@@ -27,6 +28,9 @@ public class FraudCase {
 
     @Column(name = "opened_at")
     private LocalDateTime openedAt;
+
+    @Column(name = "closed_at")
+    private LocalDateTime closedAt;
 
     @Column(name = "priority")
     private Integer priority;
@@ -97,6 +101,14 @@ public class FraudCase {
 
     public void setOpenedAt(LocalDateTime openedAt) {
         this.openedAt = openedAt;
+    }
+
+    public LocalDateTime getClosedAt() {
+        return closedAt;
+    }
+
+    public void setClosedAt(LocalDateTime closedAt) {
+        this.closedAt = closedAt;
     }
 
     public Integer getPriority() {
