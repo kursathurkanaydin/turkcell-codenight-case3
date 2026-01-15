@@ -27,6 +27,6 @@ public record RiskRuleRequest(
         @NotNull(message = "Öncelik zorunludur")
         Integer priority,
 
-        Boolean isActive  // Default true
+        Boolean active  // Default true
 ) {
 }

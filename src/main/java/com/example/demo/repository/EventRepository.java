@@ -28,4 +28,14 @@ public interface EventRepository extends JpaRepository<Event, String> {
 
     @Query("SELECT e FROM Event e WHERE e.timestamp >= :since ORDER BY e.timestamp DESC")
     List<Event> findRecentEvents(@Param("since") LocalDateTime since);
+
+    /**
+     * Son 15 dakika içindeki PAYMENT event'lerini sayar
+     * RR-03 kuralı için: payments_15min_count >= 2
+     */
+    @Query("SELECT COUNT(e) FROM Event e WHERE e.userId = :userId AND e.service = :service " +
+           "AND e.eventType = 'PAYMENT' AND e.timestamp >= :since")
+    long countPaymentEventsInTimeWindow(@Param("userId") String userId,
+                                        @Param("service") String service,
+                                        @Param("since") LocalDateTime since);
 }

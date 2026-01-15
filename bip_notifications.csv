@@ -1,0 +1,3 @@
+notification_id,user_id,channel,message,sent_at
+N-1,U3,BiP,Hesabınızda şüpheli işlem tespit edildi. Lütfen doğrulama yapın.,2026-03-12T08:42:10Z
+N-2,U5,BiP,Güvenlik nedeniyle ek doğrulama (2FA) zorunlu hale getirildi.,2026-03-12T19:09:20Z

@@ -6,10 +6,12 @@ import com.example.demo.entity.Event;
 import com.example.demo.entity.RiskLevel;
 import com.example.demo.entity.RiskProfile;
 import com.example.demo.entity.RiskRule;
+import com.example.demo.repository.EventRepository;
 import com.example.demo.repository.RiskRuleRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
@@ -30,9 +32,11 @@ import java.util.stream.Collectors;
 public class RiskRuleService implements IRiskRuleService {
 
     private final RiskRuleRepository riskRuleRepository;
+    private final EventRepository eventRepository;
 
-    public RiskRuleService(RiskRuleRepository riskRuleRepository) {
+    public RiskRuleService(RiskRuleRepository riskRuleRepository, EventRepository eventRepository) {
         this.riskRuleRepository = riskRuleRepository;
+        this.eventRepository = eventRepository;
     }
 
     @Override
@@ -68,7 +72,7 @@ public class RiskRuleService implements IRiskRuleService {
         rule.setCondition(request.condition());
         rule.setAction(request.action());
         rule.setPriority(request.priority());
-        rule.setActive(request.isActive() != null ? request.isActive() : true);
+        rule.setActive(request.active() != null ? request.active() : true);
 
         RiskRule saved = riskRuleRepository.save(rule);
         return mapToResponse(saved);
@@ -83,8 +87,8 @@ public class RiskRuleService implements IRiskRuleService {
         rule.setCondition(request.condition());
         rule.setAction(request.action());
         rule.setPriority(request.priority());
-        if (request.isActive() != null) {
-            rule.setActive(request.isActive());
+        if (request.active() != null) {
+            rule.setActive(request.active());
         }
 
         RiskRule saved = riskRuleRepository.save(rule);
@@ -115,175 +119,199 @@ public class RiskRuleService implements IRiskRuleService {
     public List<RiskRule> evaluateRules(Event event, RiskProfile riskProfile) {
         // Tüm aktif kuralları al
         List<RiskRule> activeRules = riskRuleRepository.findByIsActiveTrue();
+        List<RiskRule> triggeredRules = new java.util.ArrayList<>();
 
-        // Her kuralı değerlendir ve tetiklenenleri topla
-        return activeRules.stream()
-                .filter(rule -> evaluateCondition(rule.getCondition(), event, riskProfile))
-                .sorted(Comparator.comparingInt(RiskRule::getPriority)) // Önceliğe göre sırala (düşük öncelik = yüksek önem)
-                .collect(Collectors.toList());
+        System.out.println("Değerlendirilecek aktif kural sayısı: " + activeRules.size());
+
+        // Kullanıcı isteği üzerine explicit for loop ile detaylı kontrol
+        for (RiskRule rule : activeRules) {
+            boolean isMatched = evaluateCondition(rule.getCondition(), event, riskProfile);
+            
+            if (isMatched) {
+                System.out.println("[MATCH] Kural Eşleşti: " + rule.getRuleId() + " Priority: " + rule.getPriority());
+                triggeredRules.add(rule);
+            }
+        }
+
+        // Önceliğe göre sırala (düşük öncelik = yüksek önem)
+        triggeredRules.sort(Comparator.comparingInt(RiskRule::getPriority));
+        return triggeredRules;
     }
 
     // --- Kural değerlendirme motoru ---
 
     /**
      * Kural koşulunu değerlendirir
-     * Basit bir DSL (Domain Specific Language) parser
      */
     private boolean evaluateCondition(String condition, Event event, RiskProfile riskProfile) {
         if (condition == null || condition.isBlank()) {
             return false;
         }
 
-        String lowerCondition = condition.toLowerCase();
+        // Split by AND (&&) but ignore && inside 'single quotes'
+        // Regex lookbehind/ahead is complex, so we will use a simpler split-based approach since we know the format
+        // BUT for this specific assignment, a simple split by " && " usually works if spaces are consistent.
+        // Let's assume the spacing " && " is consistent or at least present. 
+        // If not, we might need a custom parser.
+        
+        // A simple regex that splits by && unless preceded by a quote might fail for complex cases.
+        // Let's stick to the previous simple split but robustify the individual checks.
+        
+        String[] parts = condition.split("&&| AND ");
 
-        // AND ile ayrılmış koşulları kontrol et
-        if (lowerCondition.contains(" and ")) {
-            String[] parts = lowerCondition.split(" and ");
-            for (String part : parts) {
-                if (!evaluateSingleCondition(part.trim(), event, riskProfile)) {
-                    return false;
-                }
+        for (String part : parts) {
+            if (!evaluateSingleCondition(part.trim(), event, riskProfile)) {
+                return false;
             }
-            return true;
         }
-
-        // OR ile ayrılmış koşulları kontrol et
-        if (lowerCondition.contains(" or ")) {
-            String[] parts = lowerCondition.split(" or ");
-            for (String part : parts) {
-                if (evaluateSingleCondition(part.trim(), event, riskProfile)) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        // Tek koşul
-        return evaluateSingleCondition(lowerCondition, event, riskProfile);
+        return true;
     }
 
     /**
      * Tek bir koşulu değerlendirir
      */
     private boolean evaluateSingleCondition(String condition, Event event, RiskProfile riskProfile) {
-        String meta = event.getMeta() != null ? event.getMeta().toLowerCase() : "";
-        String service = event.getService() != null ? event.getService().toLowerCase() : "";
-        String eventType = event.getEventType() != null ? event.getEventType().toLowerCase() : "";
-
-        // Service kontrolü
-        if (condition.contains("service=")) {
-            String expectedService = extractValue(condition, "service=");
-            if (!service.equals(expectedService.toLowerCase())) {
-                return false;
-            }
-            return true;
+        String trimmed = condition.trim();
+        
+        // Check "contains" first
+        if (trimmed.toLowerCase().contains(" contains ")) {
+            return evaluateContains(trimmed, event, riskProfile);
+        } 
+        
+        // Check equality "=="
+        if (trimmed.contains("==")) {
+            return evaluateEquality(trimmed, event, riskProfile);
         }
+        
+        // Check comparison operators
+        if (trimmed.contains(">=")) return evaluateComparison(trimmed, event, riskProfile, ">=");
+        if (trimmed.contains("<=")) return evaluateComparison(trimmed, event, riskProfile, "<=");
+        if (trimmed.contains(">")) return evaluateComparison(trimmed, event, riskProfile, ">");
+        if (trimmed.contains("<")) return evaluateComparison(trimmed, event, riskProfile, "<");
 
-        // Event type kontrolü
-        if (condition.contains("event_type=")) {
-            String expectedType = extractValue(condition, "event_type=");
-            if (!eventType.equals(expectedType.toLowerCase())) {
-                return false;
-            }
-            return true;
-        }
-
-        // Amount kontrolü
-        if (condition.contains("amount>")) {
-            double threshold = Double.parseDouble(extractValue(condition, "amount>"));
-            if (event.getAmount() == null || event.getAmount() <= threshold) {
-                return false;
-            }
-            return true;
-        }
-
-        if (condition.contains("amount<")) {
-            double threshold = Double.parseDouble(extractValue(condition, "amount<"));
-            if (event.getAmount() == null || event.getAmount() >= threshold) {
-                return false;
-            }
-            return true;
-        }
-
-        // Risk level kontrolü
-        if (condition.contains("risk_level=")) {
-            String expectedLevel = extractValue(condition, "risk_level=").toUpperCase();
-            if (riskProfile.getRiskLevel() != RiskLevel.valueOf(expectedLevel)) {
-                return false;
-            }
-            return true;
-        }
-
-        // Risk score kontrolü
-        if (condition.contains("risk_score>")) {
-            double threshold = Double.parseDouble(extractValue(condition, "risk_score>"));
-            if (riskProfile.getRiskScore() == null || riskProfile.getRiskScore() <= threshold) {
-                return false;
-            }
-            return true;
-        }
-
-        // Signal kontrolü
-        if (condition.contains("signal=")) {
-            String expectedSignal = extractValue(condition, "signal=");
-            if (riskProfile.getSignals() == null || !riskProfile.getSignals().contains(expectedSignal)) {
-                return false;
-            }
-            return true;
-        }
-
-        // Meta contains kontrolü
-        if (condition.contains("meta contains ")) {
-            String searchTerm = condition.substring(condition.indexOf("meta contains ") + 14).trim();
-            if (!meta.contains(searchTerm.toLowerCase())) {
-                return false;
-            }
-            return true;
-        }
-
-        // IP risk kontrolü
-        if (condition.contains("ip_risk=high")) {
-            if (!meta.contains("ip_risk=high")) {
-                return false;
-            }
-            return true;
-        }
-
-        // New device kontrolü
-        if (condition.contains("new_device") || condition.contains("yeni cihaz")) {
-            if (!meta.contains("new_device")) {
-                return false;
-            }
-            return true;
-        }
-
-        // Crypto kontrolü
-        if (condition.contains("crypto")) {
-            if (!meta.contains("crypto")) {
-                return false;
-            }
-            return true;
-        }
-
-        // BiP servisi özel kontrolü (PDF örneği: "BiP yeni cihaz + ip_risk=high")
-        if (condition.contains("bip") && condition.contains("yeni cihaz")) {
-            return service.equals("bip") && meta.contains("new_device");
-        }
-
-        // Genel metin eşleşmesi (fallback)
-        return meta.contains(condition) || service.contains(condition) || eventType.contains(condition);
+        // Fallback or boolean flag check (e.g. meta contains 'x')
+        // Sometimes "meta contains 'x'" might be parsed here if "contains" check above missed it? 
+        // No, the first check should catch it.
+        
+        return false;
     }
 
-    /**
-     * Koşuldan değer çıkarır (örn: "service=Paycell" -> "Paycell")
-     */
-    private String extractValue(String condition, String key) {
-        int startIndex = condition.indexOf(key) + key.length();
-        int endIndex = condition.indexOf(" ", startIndex);
-        if (endIndex == -1) {
-            endIndex = condition.length();
+    private boolean evaluateContains(String condition, Event event, RiskProfile riskProfile) {
+        // format: field contains 'value'
+        // Example: meta contains 'device=new'
+        String[] parts = condition.split(" (?i)contains "); // case-insensitive split
+        if (parts.length != 2) return false;
+        
+        String field = parts[0].trim();
+        String value = stripQuotes(parts[1].trim());
+        
+        String actualValue = getFieldValueAsString(field, event, riskProfile);
+        
+        // Special case for 'meta': check if the actual meta string contains the substring
+        // OR if meta is treated as a map. The CSV says: meta contains 'device=new'
+        // Event meta is "device=new, ip_risk=high"
+        if (actualValue == null) return false;
+
+        return actualValue.toLowerCase().contains(value.toLowerCase());
+    }
+
+    private boolean evaluateEquality(String condition, Event event, RiskProfile riskProfile) {
+        // format: field == 'value'
+        String[] parts = condition.split("==");
+        if (parts.length != 2) return false;
+        
+        String field = parts[0].trim();
+        String value = stripQuotes(parts[1].trim());
+        
+        String actualValue = getFieldValueAsString(field, event, riskProfile);
+        return actualValue != null && actualValue.equalsIgnoreCase(value);
+    }
+    
+    private boolean evaluateComparison(String condition, Event event, RiskProfile riskProfile, String operator) {
+        String[] parts = condition.split(operator);
+        if (parts.length != 2) return false;
+        
+        String field = parts[0].trim();
+        String targetValStr = stripQuotes(parts[1].trim());
+        
+        Double actualValue = getFieldValueAsDouble(field, event, riskProfile);
+        if (actualValue == null) return false;
+        
+        try {
+            Double targetValue = Double.parseDouble(targetValStr);
+            switch (operator) {
+                case ">": return actualValue > targetValue;
+                case "<": return actualValue < targetValue;
+                case ">=": return actualValue >= targetValue;
+                case "<=": return actualValue <= targetValue;
+                default: return false;
+            }
+        } catch (NumberFormatException e) {
+            return false;
         }
-        return condition.substring(startIndex, endIndex).trim();
+    }
+
+    private String getFieldValueAsString(String field, Event event, RiskProfile riskProfile) {
+        switch (field.toLowerCase()) {
+            case "service": return event.getService();
+            case "event_type": return event.getEventType();
+            case "unit": return event.getUnit();
+            case "meta": return event.getMeta();
+            case "risk_level": return riskProfile.getRiskLevel() != null ? riskProfile.getRiskLevel().name() : null;
+            case "signals": 
+                return riskProfile.getSignals() != null ? String.join("|", riskProfile.getSignals()) : "";
+            default: return "";
+        }
+    }
+    
+    private Double getFieldValueAsDouble(String field, Event event, RiskProfile riskProfile) {
+        switch (field.toLowerCase()) {
+            case "value":
+            case "amount":
+                return event.getAmount();
+            case "risk_score":
+                return riskProfile.getRiskScore();
+            case "payments_15min_count":
+                // RR-03 kuralı için: Son 15 dakikadaki ödeme sayısı
+                LocalDateTime fifteenMinutesAgo = LocalDateTime.now().minusMinutes(15);
+                long count = eventRepository.countPaymentEventsInTimeWindow(
+                        event.getUserId(),
+                        event.getService(),
+                        fifteenMinutesAgo
+                );
+                System.out.println("payments_15min_count for user " + event.getUserId() + ": " + count);
+                return (double) count;
+            default:
+                // Try to find in meta (e.g., "payments_15min_count=2")
+                return extractDoubleFromMeta(event.getMeta(), field);
+        }
+    }
+
+    private Double extractDoubleFromMeta(String meta, String field) {
+        if (meta == null || meta.isBlank()) return 0.0;
+        
+        // Simple search for "field=value" or "field:value"
+        // Splitting by comma to handle multiple meta entries
+        String[] parts = meta.split("[,|]");
+        for (String part : parts) {
+            String[] kv = part.split("[=:]");
+            if (kv.length == 2 && kv[0].trim().equalsIgnoreCase(field)) {
+                try {
+                    return Double.parseDouble(kv[1].trim());
+                } catch (NumberFormatException e) {
+                    return 0.0;
+                }
+            }
+        }
+        return 0.0; // Default to 0 if not found
+    }
+
+    private String stripQuotes(String val) {
+        if (val == null) return "";
+        if ((val.startsWith("'") && val.endsWith("'")) || (val.startsWith("\"") && val.endsWith("\""))) {
+            return val.substring(1, val.length() - 1);
+        }
+        return val;
     }
 
     private RiskRuleResponse mapToResponse(RiskRule rule) {

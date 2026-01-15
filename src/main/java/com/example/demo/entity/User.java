@@ -75,4 +75,12 @@ public class User {
     public void setBlocked(boolean blocked) {
         isBlocked = blocked;
     }
+
+    public RiskProfile getRiskProfile() {
+        return riskProfile;
+    }
+
+    public void setRiskProfile(RiskProfile riskProfile) {
+        this.riskProfile = riskProfile;
+    }
 }

@@ -83,21 +83,24 @@ public class RiskEngineService implements IRiskEngineService {
 
         // ADIM 3: Aksiyonları belirle ve önceliğe göre seç
         // En düşük priority değeri = en yüksek öncelik
-        RiskRule selectedRule = triggeredRules.get(0); // Zaten önceliğe göre sıralı
+        triggeredRules.sort(Comparator.comparingInt(RiskRule::getPriority));
+        
+        System.out.println("Sıralanmış Tetiklenen Kurallar:");
+        triggeredRules.forEach(r -> System.out.println(" - " + r.getRuleId() + " [Priority: " + r.getPriority() + "] -> " + r.getAction()));
+
+        RiskRule selectedRule = triggeredRules.get(0); 
         ActionType selectedAction = selectedRule.getAction();
 
         // Bastırılan (seçilmeyen) aksiyonları belirle
         List<ActionType> suppressedActions = triggeredRules.stream()
-                .skip(1)  // İlk kural zaten seçildi
+                .skip(1)  // İlk kural seçildi, gerisi bastırılır
                 .map(RiskRule::getAction)
-                .distinct()
-                .filter(action -> action != selectedAction)  // Aynı aksiyonu bastırılmış olarak gösterme
+                // .distinct() // İPTAL: Kullanıcı tüm bastırılanları görmek istiyor olabilir
                 .collect(Collectors.toList());
 
-        System.out.println("Seçilen aksiyon: " + selectedAction +
-                " (Kural: " + selectedRule.getRuleId() + ", Priority: " + selectedRule.getPriority() + ")");
+        System.out.println(">> SEÇİLEN: " + selectedAction + " (Kural: " + selectedRule.getRuleId() + ")");
         if (!suppressedActions.isEmpty()) {
-            System.out.println("Bastırılan aksiyonlar: " + suppressedActions);
+            System.out.println(">> BASTIRILANLAR: " + suppressedActions);
         }
 
         // ADIM 4: Karar kaydet (Audit Log)

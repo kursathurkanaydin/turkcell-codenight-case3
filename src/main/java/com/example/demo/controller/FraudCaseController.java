@@ -77,7 +77,7 @@ public class FraudCaseController {
                 fraudCase.getCaseId(),
                 fraudCase.getUserId(),
                 fraudCase.getStatus().name(),
-                fraudCase.getPriority(),
+                FraudCaseResponse.mapPriorityToString(fraudCase.getPriority()),
                 fraudCase.getCaseType(),
                 fraudCase.getOpenedBy(),
                 fraudCase.getOpenedAt(),
@@ -113,7 +113,9 @@ public class FraudCaseController {
                 fraudCase.getCaseId(),
                 fraudCase.getUserId(),
                 fraudCase.getStatus(),
-                fraudCase.getPriority(),
+                FraudCaseResponse.mapPriorityToString(fraudCase.getPriority()),
+                fraudCase.getCaseType(),
+                fraudCase.getOpenedBy(),
                 fraudCase.getOpenedAt(),
                 fraudCase.getClosedAt()
         );
@@ -130,7 +132,7 @@ public class FraudCaseController {
             String caseId,
             String userId,
             String status,
-            Integer priority,
+            String priority,  // PDF gereksinimi: LOW/MEDIUM/HIGH/CRITICAL
             String caseType,
             String openedBy,
             java.time.LocalDateTime openedAt,

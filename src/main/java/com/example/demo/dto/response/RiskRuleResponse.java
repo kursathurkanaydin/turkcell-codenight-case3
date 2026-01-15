@@ -10,6 +10,6 @@ public record RiskRuleResponse(
         String condition,
         ActionType action,
         Integer priority,
-        Boolean isActive
+        Boolean active
 ) {
 }
